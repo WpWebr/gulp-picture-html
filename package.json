@@ -1,0 +1,31 @@
+{
+  "name": "gulp-picture-html",
+  "version": "1.0.0",
+  "description": "Replaces <img> tag with <picture> <source>( .webp, .avif,.., data-src/-srcset\"data:image..\")<img> gulp in HTML files.",
+  "main": "index.js",
+  "dependencies": {
+		"gulp-util": "^3.0.8",
+		"through2": "^3.0.1"
+	},
+	"devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "homepage": "https://wpwebr.com",
+  "keywords": [
+    "gulp",
+    "webp",
+    "avif",
+    "data-src",
+    "data-srcset",
+    "data:image",
+    "picture",
+    "source",
+    "img",
+    "html",
+    "gulp-webp-html",
+    "gulp-avif-html"
+  ],
+  "author": "WpWebr",
+  "license": "MIT"
+}
