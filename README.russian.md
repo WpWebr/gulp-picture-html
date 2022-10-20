@@ -10,7 +10,7 @@ $ npm install gulp-picture-html --save-dev
 
 ## Применение
 
-Use this into your `gulpfile.js`:
+Пропишите это в своем `gulpfile.js`:
 
 ### Базовые настройки
 
