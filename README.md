@@ -84,18 +84,14 @@ exports.html = html;
   <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" data-src="img/verstka.jpeg" data-srcset="img/medium.PNG 2x, img/demo-200px.png 200w" width="500" height="300">
 </picture>
 ```
-
-### Browser Support
-At the time of writing, **AVIF has 64% support on browsers.** Google Chrome and Opera support it. Firefox will support it from June 2021. Safari doesn't yet have AVIF support. However, AVIF is an invention of the non-profit industry consortium Alliance for Open Media AOM. Major browser giants Apple, Mozilla and Google are all part of the project, so support can be expected relatively quickly.
-
 ### The picture element
 For now, you can still use the format in it's almost complete glory with the native `<picture>` element in HTML. Why, you may ask? Well, the `<picture>` element allows progressive support. You can simply drop all image files in the order in which you want to load them. Your visitors' browsers load only one image at a time, which reduces the load on the server. Besides, you don't need a script to process multiple images.
-Currently **96.5% of browsers support the** [`picture element`](https://caniuse.com/?search=picture)
+Currently **97% of browsers support the** [`picture element`](https://caniuse.com/?search=picture)
 
 ✔ *Does not download more than one image at a time*
 
 ✔ *Native support for selecting the most appropriate image*
 
-✔ *96% browser support and automatic fallback*
+✔ *97% browser support and automatic fallback*
 
 ✔ *Getting this implemented is easy and straightforward*
