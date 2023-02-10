@@ -36,7 +36,7 @@ exports.html = html;
   {
     extensions : ['.png','.jpg'], // расширерия файлов изображений для которых создаем 'picture'
     source : ['.avif', '.webp'], // создаем 'source' с этими форматами      
-    noPicture : ['no-sourse'],  // если находим этот класс для тега 'img', то не создаем 'picture' (можно ставить несколько классов)
+    noPicture : ['no-picture'],  // если находим этот класс для тега 'img', то не создаем 'picture' (можно ставить несколько классов)
     noPictureDel : false // если 'true' удалить классы для тега 'img' заданные в 'noSource:[]'
   }
 ))
