@@ -1,7 +1,7 @@
 const Vinyl = require('vinyl')
 const PluginError = Vinyl.PluginError
 const through = require('through2')
-const pluginName = 'gulp-webp-html-nosvg'
+const pluginName = 'gulp-picture-html'
 
 module.exports = function (ops) {
   let source, noPicture, extensions, noPictureDel
@@ -26,9 +26,20 @@ module.exports = function (ops) {
       return
     }
     try {
-      let inPicture = false
+      let inPicture = false;
+      let comments = [];
       const data = file.contents
         .toString()
+        // Сохраняем комментарии, чтобы не их не обрабатывать
+        .replace(/(<!--[\s\S]*?-->)/g, function (match) {
+          comments.push(match); // Сохраняем комментарий в массив
+          return `<!--comment_${comments.length - 1}-->`; // Заменяем комментарий на метку
+        })
+        // Добавляем перевод строки после одиночных и закрывающих тегов
+        .replace(/(<(img|br|hr|input|link|meta)[^>]*>)/gi, '$1\n') // Для одиночных тегов
+        .replace(/(<\/[^>]+>)/g, '$1\n') // Для закрывающих тегов
+        .replace(/\n\s*\n/g, '\n') // Убираем лишние переводы строк
+        .trim()
         .split('\n')
         .map(function (lines) {
           // Вне <picture/>?
@@ -36,6 +47,7 @@ module.exports = function (ops) {
           if (lines.indexOf('</picture') + 1) inPicture = false
           // Проверяем есть ли <img/>, нет ли заданного класса у 'img' и не закомментированна ли строка
           if (lines.indexOf('<img') + 1 && !inPicture && !noSour(noPicture, lines) && !(lines.indexOf('<!--') + 1)) {
+            const indent = ' '.repeat(lines.indexOf('<img'));
             const Re = /<img([^>]*)src=\"(.+?)\"([^>]*)>/gi
             let regexpItem,
               regexArr = [],
@@ -67,7 +79,7 @@ module.exports = function (ops) {
                   l++
                   extensions.push(e)
                 });
-                newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0]))
+                newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0], indent))
                 lines = lines.replace(imgTagArr[0], newHTMLArr[i])
               }
               return lines;
@@ -92,9 +104,12 @@ module.exports = function (ops) {
 
         })
         .join('\n')
+        // Восстанавливаем комментарии обратно на их места
+        .replace(/<!--comment_(\d+)-->/g, function (_, index) {
+          return comments[parseInt(index, 10)];
+        });
       file.contents = new Buffer.from(data)
       this.push(file)
-
 
       function extensionsIn(Arr, ex) {
         let exIn = [];
@@ -111,22 +126,22 @@ module.exports = function (ops) {
         return noPicture.some(noS)
       }
 
-      function pictureRender(sour, url, imgTag) {
+      function pictureRender(sour, url, imgTag, indent) {
         let i = 0
         let li = ''
         if ((imgTag.indexOf('data-src') + 1)) {
-          imgTag = imgTag.replace('<img', '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" ');
+          imgTag = imgTag.replace('<img', `${indent}  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" `);
           url.forEach(e => {
-            li += `<source data-srcset="${e}" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
+            li += `${indent}  <source data-srcset="${e}" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
             i++
           });
-          return (`<picture>\n${li}${imgTag}\n</picture>\n`)
+          return (`<picture>\n${li}${imgTag}\n${indent}</picture>`)
         } else {
           url.forEach(e => {
-            li += `<source srcset="${e}" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
+            li += `${indent}  <source srcset="${e}" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
             i++
           })
-          return (`<picture>\n${li}${imgTag}\n</picture>\n`)
+          return (`<picture>\n${li}${indent}  ${imgTag}\n${indent}</picture>`)
         }
       }
 

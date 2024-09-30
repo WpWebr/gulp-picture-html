@@ -32,9 +32,9 @@ exports.html = html;
 ```js
 // …
 .pipe(pictureHTML(      
-  options: // below default
+  // options below default:
   {
-    extensions : ['.png','.jpg'], // image file extensions for which we create 'picture'
+    extensions : ['.jpg', '.png', '.jpeg'], // image file extensions for which we create 'picture'
     source : ['.avif', '.webp'], // create 'source' with these formats   
     noPicture : ['no-picture'],  // if we find this class for the 'img' tag, then we don't create a 'picture' (multiple classes can be set)
     noPictureDel : false // if 'true' remove classes for 'img' tag given in 'noSource:[]'
@@ -44,9 +44,8 @@ exports.html = html;
 
 ```
 ## Example
-
+### Input
 ```html
-// Input
 <!-- Does not change the commented out 'img' tag
   <img src="img/image.jpg" alt="image"> -->
 <img src="img/image.jpg" alt="image">
@@ -58,14 +57,14 @@ exports.html = html;
 <!-- For lazy loading with JS, finding 'data-src' creates 'src' and 'srcset' c 'data:image/png;...' -->
 <img data-src="img/verstka.jpeg" data-srcset="img/medium.PNG 2x, img/demo-200px.png 200w" width="500" height="300">
 ```
+### Output
 ```html
-// Output
 <!-- Does not change the commented out 'img' tag
   <img src="img/image.jpg" alt="image"> -->
 <picture>
-    <source srcset="img/image.avif" type="image/avif">
-    <source srcset="img/image.webp" type="image/webp">
-    <img src="img/image.jpg" alt="image">
+  <source srcset="img/image.avif" type="image/avif">
+  <source srcset="img/image.webp" type="image/webp">
+  <img src="img/image.jpg" alt="image">
 </picture>
 <!-- Doesn't change the 'img' tag because there is a 'no-picture' class -->
 <img class="no-picture" src="img/image.jpg" alt="image">

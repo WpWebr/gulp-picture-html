@@ -1,17 +1,17 @@
 {
   "name": "gulp-picture-html",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Replaces <img> tag with <picture> <source>( .webp, .avif,.., data-src/-srcset\"data:image..\")<img> gulp in HTML files.",
   "main": "index.js",
   "dependencies": {
-		"gulp-util": "^3.0.8",
-		"through2": "^3.0.1"
+		"through2": "^3.0.1",
+    "vinyl": "^3.0.0"
 	},
 	"devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://wpwebr.com",
+  "homepage": "https://wpwebr.com/gulp-picture-html",
   "keywords": [
     "gulp",
     "webp",
