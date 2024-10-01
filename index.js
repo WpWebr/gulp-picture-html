@@ -29,7 +29,7 @@ module.exports = function (ops) {
         // Сохраняем комментарии, чтобы не их не обрабатывать
         .replace(/(<!--[\s\S]*?-->)/g, function (match) {
           comments.push(match); // Сохраняем комментарий в массив
-          return `<!--comment_${comments.length - 1}-->`; // Заменяем комментарий на метку
+          return `<!--comment_${comments.length - 1}-->\n`; // Заменяем комментарий на метку
         })
         // Добавляем перевод строки после одиночных и закрывающих тегов
         .replace(/(<(img|br|hr|input|link|meta)[^>]*>)/gi, '$1\n') // Для одиночных тегов
@@ -37,75 +37,78 @@ module.exports = function (ops) {
         .replace(/\n\s*\n/g, '\n') // Убираем лишние переводы строк
         .trim()
         .split('\n')
-        .map(function (lines) {
-          // Вне <picture/>?
-          if (lines.includes('<picture')) inPicture = true;
-          if (lines.includes('</picture')) inPicture = false;
-          // Проверяем есть ли <img/>, нет ли заданного класса у 'img' и не закомментированна ли строка
-          if (lines.includes('<img') && !inPicture && !noSour(noPicture, lines) && !(lines.includes('<!--'))) {
-            const indent = ' '.repeat(lines.indexOf('<img'));
-            const Re = /<img([^>]*)src=\"(.+?)\"([^>]*)>/gi
-            let regexpItem,
-              regexArr = [],
-              imgTagArr = [],
-              newUrlArr = [],
-              newHTMLArr = [],
-              newUrlA = []
-            while (regexpItem = Re.exec(lines)) {
-              regexArr.push(regexpItem)
-            }
-            // Проверяем соответствует ли  значение 'src' заданным расширениям
-            if (extensionsIn(regexArr[0][2], extensions)) {
-              // Проверяем соответствует ли  атребут 'srcset= '
-              if (regexArr[0][0].includes('srcset=')) {
-                newUrlArr = [regexArr[0][2] + ', ' + (/srcset=([^\"]*)(.+?)([^\"]*)/gi.exec(regexArr[0][0]))[3]]
-              } else {
-                newUrlArr.push(regexArr[0][2]);
-              }
-              imgTagArr.push(regexArr[0][0]);
-
-              for (let i = 0; i < newUrlArr.length; i++) {
-                let l = 0
-                source.forEach(e => {
-                  for (let k of extensions) {
-                    k = new RegExp("\\" + k, 'gi')
-                    newUrlArr[i] = newUrlArr[i].replace(k, e)
-                  }
-                  newUrlA[l] = newUrlArr[i]
-                  l++
-                  extensions.push(e)
-                });
-                newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0], indent))
-                lines = lines.replace(imgTagArr[0], newHTMLArr[i])
-              }
-              return lines;
-            }
-          }
-
-          if (noSour(noPicture, lines) && !(lines.includes('<!--')) && noPictureDel) {
-            let i = 0;
-            while (noSour(noPicture, lines)) {
-              // Удаляем элемент массива 'noPicture' в строке 'lines'
-              lines = lines.replace((new RegExp(`${noPicture[i]}\\s*`, 'g')), '');
-              i++;
-            }
-            // если нет стилей удаляем атрибут 'class=" "'
-            if (/class=\"(\s*)\"/g.test(lines)) {
-              lines = lines.replace((/class=\"(\s*)\"/g.exec(lines))[0], '')
-            }
-            return lines;
-          } else {
-            return lines;
-          }
-
-        })
+        .map(muLine)
         .join('\n')
         // Восстанавливаем комментарии обратно на их места
         .replace(/<!--comment_(\d+)-->/g, function (_, index) {
           return comments[parseInt(index, 10)];
         });
-      file.contents = new Buffer.from(data)
-      this.push(file)
+
+      file.contents = new Buffer.from(data);
+      this.push(file);
+
+      function muLine(lines) {
+        // Вне <picture/>?
+        if (lines.includes('<picture')) inPicture = true;
+        if (lines.includes('</picture')) inPicture = false;
+        // Проверяем есть ли <img/>, нет ли заданного класса у 'img' и не закомментированна ли строка
+        if (lines.includes('<img') && !inPicture && !noSour(noPicture, lines) && !(lines.includes('<!--'))) {
+          const indent = ' '.repeat(lines.indexOf('<img'));
+          const Re = /<img([^>]*)src=\"(.+?)\"([^>]*)>/gi
+          let regexpItem,
+            regexArr = [],
+            imgTagArr = [],
+            newUrlArr = [],
+            newHTMLArr = [],
+            newUrlA = []
+          while (regexpItem = Re.exec(lines)) {
+            regexArr.push(regexpItem)
+          }
+          // Проверяем соответствует ли  значение 'src' заданным расширениям
+          if (extensionsIn(regexArr[0][2], extensions)) {
+            // Проверяем соответствует ли  атребут 'srcset= '
+            if (regexArr[0][0].includes('srcset=')) {
+              newUrlArr = [regexArr[0][2] + ', ' + (/srcset=([^\"]*)(.+?)([^\"]*)/gi.exec(regexArr[0][0]))[3]]
+            } else {
+              newUrlArr.push(regexArr[0][2]);
+            }
+            imgTagArr.push(regexArr[0][0]);
+
+            for (let i = 0; i < newUrlArr.length; i++) {
+              let l = 0
+              source.forEach(e => {
+                for (let k of extensions) {
+                  k = new RegExp("\\" + k, 'gi')
+                  newUrlArr[i] = newUrlArr[i].replace(k, e)
+                }
+                newUrlA[l] = newUrlArr[i]
+                l++
+                extensions.push(e)
+              });
+              newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0], indent))
+              lines = lines.replace(imgTagArr[0], newHTMLArr[i])
+            }
+            return lines;
+          }
+        }
+
+        if (noSour(noPicture, lines) && !(lines.includes('<!--')) && noPictureDel) {
+          let i = 0;
+          while (noSour(noPicture, lines)) {
+            // Удаляем элемент массива 'noPicture' в строке 'lines'
+            lines = lines.replace((new RegExp(`${noPicture[i]}\\s*`, 'g')), '');
+            i++;
+          }
+          // если нет стилей удаляем атрибут 'class=" "'
+          if (/class=\"(\s*)\"/g.test(lines)) {
+            lines = lines.replace((/class=\"(\s*)\"/g.exec(lines))[0], '')
+          }
+          return lines;
+        } else {
+          return lines;
+        }
+
+      }
 
       function extensionsIn(Arr, ex) {
         let exIn = [];
