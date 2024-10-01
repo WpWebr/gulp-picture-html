@@ -1,29 +1,25 @@
-const Vinyl = require('vinyl')
-const PluginError = Vinyl.PluginError
-const through = require('through2')
-const pluginName = 'gulp-picture-html'
+'use strict';
+const Vinyl = require('vinyl');
+const PluginError = Vinyl.PluginError;
+const through = require('through2');
+const pluginName = 'gulp-picture-html';
 
 module.exports = function (ops) {
   let source, noPicture, extensions, noPictureDel
-  if (ops === undefined) {
-    extensions = ['.jpg', '.png', '.jpeg']
-    source = ['.avif', '.webp']
-    noPicture = ['no-picture']
-    noPictureDel = false
-  } else {
-    ops.extensions === undefined ? extensions = ['.jpg', '.png', '.jpeg'] : extensions = ops.extensions // форматы для которых включено добавление тега 'source' 
-    ops.source === undefined ? source = ['.avif', '.webp'] : source = ops.source // добавление 'picture/source' c указанными форматами
-    ops.noPicture === undefined ? noPicture = ['no-picture'] : noPicture = ops.noPicture // если находим этот класс для тега 'img', то не создаем 'picture' (можно ставить несколько классов)
-    ops.noPictureDel === undefined ? noPictureDel = false : noPictureDel = ops.noPictureDel // удалить классы для тега 'img' заданные в 'noPicture:[]'
-  }
+
+  extensions = ops.extensions ?? ['.jpg', '.png', '.jpeg'];
+  source = ops.source ?? ['.avif', '.webp'];
+  noPicture = ops.noPicture ?? ['no-picture'];
+  noPictureDel = ops.noPictureDel ?? false;
+
   return through.obj(function (file, enc, cb) {
     if (file.isNull()) {
-      cb(null, file)
-      return
+      cb(null, file);
+      return;
     }
     if (file.isStream()) {
-      cb(new PluginError(pluginName, 'Streaming not supported')) //Потоковая передача не поддерживается
-      return
+      cb(new PluginError(pluginName, 'Streaming not supported')); //Потоковая передача не поддерживается
+      return;
     }
     try {
       let inPicture = false;
@@ -43,10 +39,10 @@ module.exports = function (ops) {
         .split('\n')
         .map(function (lines) {
           // Вне <picture/>?
-          if (lines.indexOf('<picture') + 1) inPicture = true
-          if (lines.indexOf('</picture') + 1) inPicture = false
+          if (lines.includes('<picture')) inPicture = true;
+          if (lines.includes('</picture')) inPicture = false;
           // Проверяем есть ли <img/>, нет ли заданного класса у 'img' и не закомментированна ли строка
-          if (lines.indexOf('<img') + 1 && !inPicture && !noSour(noPicture, lines) && !(lines.indexOf('<!--') + 1)) {
+          if (lines.includes('<img') && !inPicture && !noSour(noPicture, lines) && !(lines.includes('<!--'))) {
             const indent = ' '.repeat(lines.indexOf('<img'));
             const Re = /<img([^>]*)src=\"(.+?)\"([^>]*)>/gi
             let regexpItem,
@@ -71,7 +67,7 @@ module.exports = function (ops) {
               for (let i = 0; i < newUrlArr.length; i++) {
                 let l = 0
                 source.forEach(e => {
-                  for (k of extensions) {
+                  for (let k of extensions) {
                     k = new RegExp("\\" + k, 'gi')
                     newUrlArr[i] = newUrlArr[i].replace(k, e)
                   }
@@ -86,7 +82,7 @@ module.exports = function (ops) {
             }
           }
 
-          if (noSour(noPicture, lines) && !(lines.indexOf('<!--') + 1) && noPictureDel) {
+          if (noSour(noPicture, lines) && !(lines.includes('<!--')) && noPictureDel) {
             let i = 0;
             while (noSour(noPicture, lines)) {
               // Удаляем элемент массива 'noPicture' в строке 'lines'
@@ -129,7 +125,7 @@ module.exports = function (ops) {
       function pictureRender(sour, url, imgTag, indent) {
         let i = 0
         let li = ''
-        if ((imgTag.indexOf('data-src') + 1)) {
+        if ((imgTag.includes('data-src'))) {
           imgTag = imgTag.replace('<img', `${indent}  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" `);
           url.forEach(e => {
             li += `${indent}  <source data-srcset="${e}" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
