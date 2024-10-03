@@ -110,9 +110,9 @@ module.exports = function (ops) {
           if (/class=\"(\s*)\"/g.test(lines)) {
             lines = lines.replace((/class=\"(\s*)\"/g.exec(lines))[0], '')
           }
-          return `\n${indent}${lines}`;
+          return `${spaces}${lines}`;
         } else {
-          return `\n${indent}${lines}`;
+          return `${spaces}${lines}`;
         }
 
       }
