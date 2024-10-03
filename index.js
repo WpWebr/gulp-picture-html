@@ -13,6 +13,7 @@ module.exports = function (ops) {
   noPictureDel = ops.noPictureDel ?? false;
 
   return through.obj(function (file, enc, cb) {
+    let i = 0;
     if (file.isNull()) {
       cb(null, file);
       return;
@@ -22,38 +23,46 @@ module.exports = function (ops) {
       return;
     }
     try {
-      let inPicture = false;
       let comments = [];
+      let arrPicture = [];
+      let arrImages = [];
       const data = file.contents
         .toString()
-        // Сохраняем комментарии, чтобы не их не обрабатывать
+        // Сохраняем комментарии, чтобы их не обрабатывать
         .replace(/(<!--[\s\S]*?-->)/g, function (match) {
           comments.push(match); // Сохраняем комментарий в массив
-          return `<!--comment_${comments.length - 1}-->\n`; // Заменяем комментарий на метку
+          return `<!--comment_${comments.length - 1}-->`; // Заменяем комментарий на метку
         })
-        // Добавляем перевод строки после одиночных и закрывающих тегов
-        .replace(/(<(img|br|hr|input|link|meta)[^>]*>)/gi, '$1\n') // Для одиночных тегов
-        .replace(/(<\/[^>]+>)/g, '$1\n') // Для закрывающих тегов
-        .replace(/\n\s*\n/g, '\n') // Убираем лишние переводы строк
-        .trim()
-        .split('\n')
-        .map(muLine)
-        .join('\n')
+        // Сохраняем <picture>, чтобы их не обрабатывать
+        .replace(/(<picture>[\s\S]*?<\/picture>)/g, function (match) {
+          arrPicture.push(match); // Сохраняем <picture> в массив
+          return `<!--markPicture_${arrPicture.length - 1}-->`; // Заменяем <picture> на метку
+        })
+        // Обрабатываем и сохраняем <img >
+        .replace(/(\s*)(<img[\s\S]*?>)/g, function (match, spaces, imgTag) {
+          const indent = ' '.repeat(match.replace(/^\s*\n/gm, '').indexOf('<img')); // Пробелы до до <img >        
+          arrImages.push(muLine(imgTag, spaces, indent)); // Обрабатываем и сохраняем в массив
+          return `<!--markImages_${arrImages.length - 1}-->`; // Заменяем <img> на метку
+        })
         // Восстанавливаем комментарии обратно на их места
         .replace(/<!--comment_(\d+)-->/g, function (_, index) {
           return comments[parseInt(index, 10)];
+        })
+        // Восстанавливаем <picture> обратно на их места
+        .replace(/<!--markPicture_(\d+)-->/g, function (_, index) {
+          return arrPicture[parseInt(index, 10)];
+        })
+        // Восстанавливаем обработанное <img > обратно на место
+        .replace(/<!--markImages_(\d+)-->/g, function (_, index) {
+          return arrImages[parseInt(index, 10)];
         });
 
       file.contents = new Buffer.from(data);
       this.push(file);
 
-      function muLine(lines) {
-        // Вне <picture/>?
-        if (lines.includes('<picture')) inPicture = true;
-        if (lines.includes('</picture')) inPicture = false;
-        // Проверяем есть ли <img/>, нет ли заданного класса у 'img' и не закомментированна ли строка
-        if (lines.includes('<img') && !inPicture && !noSour(noPicture, lines) && !(lines.includes('<!--'))) {
-          const indent = ' '.repeat(lines.indexOf('<img'));
+      function muLine(lines, spaces, indent) {
+        // Проверяем нет ли заданного класса у 'img'
+        if (!noSour(noPicture, lines)) {
           const Re = /<img([^>]*)src=\"(.+?)\"([^>]*)>/gi
           let regexpItem,
             regexArr = [],
@@ -85,14 +94,12 @@ module.exports = function (ops) {
                 l++
                 extensions.push(e)
               });
-              newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0], indent))
+              newHTMLArr.push(pictureRender(source, newUrlA, imgTagArr[0], spaces, indent))
               lines = lines.replace(imgTagArr[0], newHTMLArr[i])
             }
             return lines;
           }
-        }
-
-        if (noSour(noPicture, lines) && !(lines.includes('<!--')) && noPictureDel) {
+        } else if ( noPictureDel) {
           let i = 0;
           while (noSour(noPicture, lines)) {
             // Удаляем элемент массива 'noPicture' в строке 'lines'
@@ -103,9 +110,9 @@ module.exports = function (ops) {
           if (/class=\"(\s*)\"/g.test(lines)) {
             lines = lines.replace((/class=\"(\s*)\"/g.exec(lines))[0], '')
           }
-          return lines;
+          return `\n${indent}${lines}`;
         } else {
-          return lines;
+          return `\n${indent}${lines}`;
         }
 
       }
@@ -125,22 +132,22 @@ module.exports = function (ops) {
         return noPicture.some(noS)
       }
 
-      function pictureRender(sour, url, imgTag, indent) {
+      function pictureRender(sour, url, imgTag, spaces, indent) {
         let i = 0
         let li = ''
         if ((imgTag.includes('data-src'))) {
-          imgTag = imgTag.replace('<img', `${indent}  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" `);
+          imgTag = imgTag.replace('<img', `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" `);
           url.forEach(e => {
             li += `${indent}  <source data-srcset="${e}" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
             i++
           });
-          return (`<picture>\n${li}${imgTag}\n${indent}</picture>`)
+          return (`${spaces}<picture>\n${li}${indent}  ${imgTag}\n${indent}</picture>`)
         } else {
           url.forEach(e => {
             li += `${indent}  <source srcset="${e}" type="image/${sour[i].replace(/[\s.%]/g, '')}"></source>\n`
             i++
           })
-          return (`<picture>\n${li}${indent}  ${imgTag}\n${indent}</picture>`)
+          return (`${spaces}<picture>\n${li}${indent}  ${imgTag}\n${indent}</picture>`)
         }
       }
 
