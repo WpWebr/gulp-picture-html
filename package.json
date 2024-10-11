@@ -1,6 +1,6 @@
 {
   "name": "gulp-picture-html",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Replaces <img> tag with <picture> <source>( .webp, .avif,.., data-src/-srcset\"data:image..\")<img> gulp in HTML files.",
   "main": "index.js",
   "dependencies": {
